@@ -1,0 +1,51 @@
+- hosts: all
+  become: yes
+  become_method: sudo
+  connection: ssh
+  tasks:
+    - name: install java
+      apt: name=default-jdk state=latest 
+
+    - name: cloning project
+      git: 
+        repo: https://github.com/Preethireddy95/Java-Maven-Hello-World.git
+        dest: /home/ubuntu/Java-Maven-Hello-World
+        force: yes
+
+    - name: install maven
+      apt: pkg=maven state=latest update_cache=yes cache_valid_time=3600
+
+    - name: maven clean install
+      command: mvn -f "/home/ubuntu/Java-Maven-Hello-World/pom.xml/" clean install
+
+    - name: install tomcat
+      get_url: 
+        url: http://apache.mirrors.pair.com/tomcat/tomcat-9/v9.0.34/bin/apache-tomcat-9.0.34.tar.gz
+        dest: /home/ubuntu/
+
+    - name: extract archive
+      unarchive: 
+        src: /home/ubuntu/apache-tomcat-9.0.34.tar.gz 
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: restart tomcat
+      command: nohup /home/ubuntu/apache-tomcat-9.0.34/bin/shutdown.sh
+
+    - name: start tomcat
+      command: nohup /home/ubuntu/apache-tomcat-9.0.34/bin/startup.sh
+
+    - name: delete old artifact
+      file:
+        state: absent 
+        path: /home/ubuntu/apache-tomcat-9.0.34/webapps/hello-world-*
+
+    - name: copy artficat to webapps
+      command: cp /home/ubuntu/Java-Maven-Hello-World/target/hello-world-1.0.0.war /home/ubuntu/apache-tomcat-9.0.34/webapps/
+    
+    - name: ensure nginx is at the latest version
+      apt: name=nginx state=latest
+    - name: start nginx
+      service:
+          name: nginx
+          state: started
